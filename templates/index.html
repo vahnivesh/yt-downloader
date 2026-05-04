@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Downloader</title>
+</head>
+<body>
+
+<h2>YouTube Downloader</h2>
+
+<input type="text" id="url" placeholder="Paste YouTube URL" size="50">
+<br><br>
+
+<select id="format">
+    <option value="mp4">MP4 (Video)</option>
+    <option value="mp3">MP3 (Audio)</option>
+</select>
+
+<br><br>
+
+<button onclick="startDownload()">Download</button>
+
+<br><br>
+
+<progress id="progressBar" value="0" max="100" style="width:300px;"></progress>
+<p id="status"></p>
+
+<script>
+let jobId = null;
+
+async function startDownload() {
+    const url = document.getElementById("url").value;
+    const format = document.getElementById("format").value;
+
+    const res = await fetch("/download", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url, format})
+    });
+
+    const data = await res.json();
+    jobId = data.job_id;
+
+    trackProgress();
+}
+
+async function trackProgress() {
+    const interval = setInterval(async () => {
+        const res = await fetch(`/progress/${jobId}`);
+        const data = await res.json();
+
+        document.getElementById("progressBar").value = data.progress;
+        document.getElementById("status").innerText = data.status;
+
+        if (data.progress >= 100) {
+            clearInterval(interval);
+
+            const link = document.createElement("a");
+            link.href = `/file/${jobId}`;
+            link.click();
+        }
+    }, 1000);
+}
+</script>
+
+</body>
+</html>
