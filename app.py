@@ -101,6 +101,7 @@ def process_download(job_id, url, fmt):
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
                     'preferredquality': '192',
+                    'cookiefile': 'cookies.txt',
                 }]
             }
 
@@ -112,6 +113,7 @@ def process_download(job_id, url, fmt):
                 'outtmpl': final_file,
                 'merge_output_format': 'mp4',
                 'progress_hooks': [progress_hook],
+                'cookiefile': 'cookies.txt',
             }
 
         # Run download
