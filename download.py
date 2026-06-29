@@ -13,6 +13,30 @@ CORS(app)
 DOWNLOAD_DIR = tempfile.gettempdir()
 
 # ---------------------------------------------------------------------------
+# Copy cookies to a writable location on startup
+# /etc/secrets/ is read-only on Render — yt-dlp needs to write to the file
+# ---------------------------------------------------------------------------
+def get_writable_cookies_path() -> str:
+    src = os.environ.get("YT_COOKIES_PATH", "").strip()
+    if not src or not os.path.isfile(src):
+        return ""
+    dest = os.path.join(DOWNLOAD_DIR, "yt_cookies.txt")
+    try:
+        import shutil
+        shutil.copy2(src, dest)
+        os.chmod(dest, 0o600)
+        return dest
+    except Exception as e:
+        print(f"[cookies] Failed to copy cookies: {e}")
+        return ""
+
+COOKIES_PATH = get_writable_cookies_path()
+if COOKIES_PATH:
+    print(f"[cookies] Loaded cookies from {os.environ.get('YT_COOKIES_PATH')} → {COOKIES_PATH}")
+else:
+    print("[cookies] No cookies file found — YouTube may block requests.")
+
+# ---------------------------------------------------------------------------
 # Cleanup old files every 10 minutes
 # ---------------------------------------------------------------------------
 def cleanup_old_files():
@@ -67,10 +91,9 @@ def base_ydl_opts(extra: dict = None) -> dict:
         "fragment_retries": 5,
     }
 
-    # Merge cookies file if present (optional — see deploy notes)
-    cookies_path = os.environ.get("YT_COOKIES_PATH", "")
-    if cookies_path and os.path.isfile(cookies_path):
-        opts["cookiefile"] = cookies_path
+    # Use the writable copy of the cookies file
+    if COOKIES_PATH and os.path.isfile(COOKIES_PATH):
+        opts["cookiefile"] = COOKIES_PATH
 
     if extra:
         opts.update(extra)
